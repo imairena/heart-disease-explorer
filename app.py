@@ -452,12 +452,22 @@ def main():
         # Left column: Correlation heatmap and target breakdown
         with col1:
             st.subheader("1. Correlation Heatmap")
+            st.markdown(
+                "This chart shows how pairs of measurements move together. "
+                "Dark red squares mean two measurements tend to be high or low at the same time "
+                "(they increase together), blue squares mean when one is high the other tends to be low."
+            )
             # Create and display correlation heatmap
             fig1 = plot_correlation_heatmap(df)
             st.pyplot(fig1)  # Display the matplotlib figure in Streamlit
             plt.close()  # Close figure to free memory
             
             st.subheader("3. Target & Age Breakdown")
+            st.markdown(
+                "The left pie chart shows what fraction of people in the dataset have signs of heart disease. "
+                "The right bar chart shows how common heart disease is in each age group, "
+                "so you can see how risk changes as people get older."
+            )
             # Create and display target breakdown (pie chart + age groups)
             fig3 = plot_target_breakdown(df)
             st.pyplot(fig3)
@@ -466,12 +476,22 @@ def main():
         # Right column: Feature distributions and risk factors
         with col2:
             st.subheader("2. Feature Distributions by Disease Status")
+            st.markdown(
+                "Each small chart compares people **with** and **without** heart disease for one measurement. "
+                "The two colors show how common each value is in each group, "
+                "so you can see, for example, whether higher cholesterol or blood pressure appears more often in the disease group."
+            )
             # Create and display feature distribution histograms
             fig2 = plot_feature_distributions(df)
             st.pyplot(fig2)
             plt.close()
             
             st.subheader("4. Risk Factors Comparison")
+            st.markdown(
+                "These box plots compare key risk factors between people with and without heart disease. "
+                "Each box shows the typical range of values, and points outside the box are unusual values. "
+                "Taller or higher boxes in the disease group suggest that factor tends to be worse when disease is present."
+            )
             # Create and display risk factor box plots
             fig4 = plot_risk_factors(df)
             st.pyplot(fig4)
@@ -496,7 +516,8 @@ def main():
                 int(ranges['age']['min']),      # Minimum value
                 int(ranges['age']['max']),      # Maximum value
                 int(ranges['age']['median']),   # Default (starting) value
-                1                                # Step size
+                1,                               # Step size
+                help="Patient age in years. In this dataset most people are between about 30 and 80 years old."
             )
             # Display the range below the slider for reference
             st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['age']['min']), int(ranges['age']['max'])), unsafe_allow_html=True)
@@ -507,7 +528,9 @@ def main():
                 int(ranges['trestbps']['min']), 
                 int(ranges['trestbps']['max']), 
                 int(ranges['trestbps']['median']), 
-                1
+                1,
+                help="Blood pressure measured at rest before exercise. Around 120 mm Hg is considered normal; "
+                     "values consistently above ~140 may be considered high."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d mm Hg</p>' % (int(ranges['trestbps']['min']), int(ranges['trestbps']['max'])), unsafe_allow_html=True)
             
@@ -517,7 +540,8 @@ def main():
                 int(ranges['chol']['min']), 
                 int(ranges['chol']['max']), 
                 int(ranges['chol']['median']), 
-                1
+                1,
+                help="Total cholesterol level in the blood. Many guidelines consider values below ~200 mg/dl desirable."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d mg/dl</p>' % (int(ranges['chol']['min']), int(ranges['chol']['max'])), unsafe_allow_html=True)
             
@@ -527,7 +551,9 @@ def main():
                 int(ranges['thalach']['min']), 
                 int(ranges['thalach']['max']), 
                 int(ranges['thalach']['median']), 
-                1
+                1,
+                help="Highest heart rate reached during an exercise test. "
+                     "Younger people typically reach higher safe maximum heart rates than older people."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['thalach']['min']), int(ranges['thalach']['max'])), unsafe_allow_html=True)
             
@@ -537,14 +563,22 @@ def main():
                 float(ranges['oldpeak']['min']), 
                 float(ranges['oldpeak']['max']), 
                 float(ranges['oldpeak']['median']), 
-                0.1  # Step size of 0.1 for decimal precision
+                0.1,  # Step size of 0.1 for decimal precision
+                help="Change in a specific part of the ECG (ST segment) during exercise. "
+                     "Values close to 0 are more typical; higher values can be a sign of reduced blood flow to the heart."
             )
             st.markdown('<p class="slider-range-label">Range: %.1f – %.1f</p>' % (float(ranges['oldpeak']['min']), float(ranges['oldpeak']['max'])), unsafe_allow_html=True)
         
         # Right column: Categorical features (dropdowns/selectboxes)
         with col2:
             # Sex dropdown: 0 = Female, 1 = Male
-            sex = st.selectbox("Sex", [0, 1], format_func=lambda x: "Female" if x == 0 else "Male")
+            sex = st.selectbox(
+                "Sex",
+                [0, 1],
+                format_func=lambda x: "Female" if x == 0 else "Male",
+                help="Biological sex of the patient (0 = female, 1 = male). "
+                     "In many heart studies, men tend to have higher recorded rates of heart disease at earlier ages."
+            )
             
             # Chest Pain Type dropdown with descriptive labels
             cp = st.selectbox(
@@ -555,14 +589,28 @@ def main():
                     2: "Atypical angina", 
                     3: "Non-anginal", 
                     4: "Asymptomatic"
-                }[x]
+                }[x],
+                help="Type of chest pain reported, where typical angina is classic heart-related chest pain and "
+                     "asymptomatic means no chest pain even though disease may still be present."
             )
             
             # Fasting Blood Sugar dropdown
-            fbs = st.selectbox("Fasting Blood Sugar > 120", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes")
+            fbs = st.selectbox(
+                "Fasting Blood Sugar > 120",
+                [0, 1],
+                format_func=lambda x: "No" if x == 0 else "Yes",
+                help="Whether fasting blood sugar is greater than 120 mg/dl (1 = yes, 0 = no). "
+                     "Higher fasting blood sugar can be a sign of diabetes or pre-diabetes."
+            )
             
             # Exercise Induced Angina dropdown
-            exang = st.selectbox("Exercise Induced Angina", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes")
+            exang = st.selectbox(
+                "Exercise Induced Angina",
+                [0, 1],
+                format_func=lambda x: "No" if x == 0 else "Yes",
+                help="Chest pain brought on by exercise (1 = yes, 0 = no). "
+                     "Angina with exertion can indicate that the heart is not getting enough blood flow."
+            )
             
             # Resting ECG dropdown
             restecg = st.selectbox(
@@ -572,7 +620,10 @@ def main():
                     0: "Normal", 
                     1: "ST-T abnormality", 
                     2: "LV hypertrophy"
-                }[x]
+                }[x],
+                help="Result of a resting electrocardiogram (ECG). "
+                     "Normal means a typical tracing; ST‑T abnormalities or left ventricular hypertrophy "
+                     "can suggest strain or thickening of the heart muscle."
             )
             
             # ST Slope dropdown
@@ -583,11 +634,21 @@ def main():
                     1: "Upsloping", 
                     2: "Flat", 
                     3: "Downsloping"
-                }[x]
+                }[x],
+                help="Shape (slope) of the ST segment on the ECG during peak exercise. "
+                     "Flat or downsloping patterns are more often associated with ischemia than upsloping patterns."
             )
             
             # Number of Major Vessels slider (categorical but numeric)
-            ca = st.slider("Number of Major Vessels (0-4)", 0, 4, 0, 1)
+            ca = st.slider(
+                "Number of Major Vessels (0-4)",
+                0,
+                4,
+                0,
+                1,
+                help="Number of major blood vessels seen as open on a special heart imaging test (0–4). "
+                     "Higher numbers generally mean more vessels are clearly visible and open."
+            )
             st.markdown('<p class="slider-range-label">Range: 0 – 4</p>', unsafe_allow_html=True)
             
             # Thalassemia dropdown
@@ -598,7 +659,9 @@ def main():
                     3: "Normal", 
                     6: "Fixed defect", 
                     7: "Reversible defect"
-                }[x]
+                }[x],
+                help="Result of a thallium heart scan. Normal means good blood flow; "
+                     "fixed or reversible defects can point to areas of the heart that are scarred or receive reduced blood flow."
             )
         
         # Collect all user inputs into a dictionary
