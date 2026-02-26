@@ -62,4 +62,3 @@ def test_clean_data_categorical_columns_are_int_and_non_null():
         assert not cleaned[col].isna().any()
         # Stored as integers
         assert np.issubdtype(cleaned[col].dtype, np.integer)
-
