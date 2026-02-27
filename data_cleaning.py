@@ -15,6 +15,9 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+# Opt-in to future pandas behavior to avoid Downcasting FutureWarning
+pd.set_option('future.no_silent_downcasting', True)
+
 # Column names for the 14 used attributes (from UCI documentation)
 # These match the standard UCI Heart Disease dataset format
 COLUMNS = [

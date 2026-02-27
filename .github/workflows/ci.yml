@@ -29,5 +29,5 @@ jobs:
           flake8 . --exclude=venv --max-line-length=120 --extend-ignore=E1,E2,E3,W,E501
 
       - name: Run tests
-        run: pytest
+        run: python -m pytest
 
