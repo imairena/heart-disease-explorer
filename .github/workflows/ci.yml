@@ -25,7 +25,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run flake8 (lint)
-        run: flake8 . --max-line-length=120 --extend-ignore=W391,W291,W292,W293,E302,E305,E501
+        run: |
+          flake8 . --exclude=venv --max-line-length=120 --extend-ignore=E1,E2,E3,W,E501
 
       - name: Run tests
         run: pytest

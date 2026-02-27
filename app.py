@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Import functions from our data cleaning module
 # These handle loading, cleaning, and getting feature ranges from the dataset
-from data_cleaning import load_raw_data, clean_data, get_feature_ranges, COLUMNS
+from data_cleaning import load_raw_data, clean_data, get_feature_ranges
 
 # Configure the Streamlit page settings
 # This must be called before any other Streamlit commands
