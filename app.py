@@ -46,7 +46,7 @@ st.markdown("""
     .stSlider [data-baseweb="thumb"] { background-color: #1abc9c !important; }
     .stSlider div[data-baseweb="slider"] > div > div { background-color: #1abc9c !important; }
     
-    /* Slider range labels - always visible, white text */
+    /* Slider range labels - always visible, black text */
     .slider-range-label { color: #ffffff !important; font-size: 0.85rem; opacity: 0.9; }
     
     /* Slider hover tooltip - simple, matches dark theme (tooltips render in portal) */
@@ -302,170 +302,111 @@ def main():
     # Page 2: What-If Analysis
     elif page == "🎯 What-If Analysis":
         st.header("What-If Analysis")
-        st.markdown("Adjust the sliders below to see how different patient parameters affect the estimated heart disease risk.")
+        st.markdown("Adjust the patient parameters below to see how they affect the estimated heart disease risk.")
         
         # Get min/max/median ranges for each feature (used to set slider bounds)
         ranges = get_feature_ranges(df)
         
-        # Create two columns for organizing input controls
-        col1, col2 = st.columns(2)
+        # Create a two-column layout: Inputs on the left, Risk Score on the right
+        input_col, result_col = st.columns([2, 1])
         
-        # Left column: Numeric features (sliders)
-        with col1:
-            # Age slider: allows user to select age within dataset range
-            age = st.slider(
-                "Age (years)", 
-                int(ranges['age']['min']),      # Minimum value
-                int(ranges['age']['max']),      # Maximum value
-                int(ranges['age']['median']),   # Default (starting) value
-                1,                               # Step size
-                help="Patient age in years. In this dataset most people are between about 30 and 80 years old."
-            )
-            # Display the range below the slider for reference
-            st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['age']['min']), int(ranges['age']['max'])), unsafe_allow_html=True)
+        with input_col:
+            st.subheader("Patient Parameters")
             
-            # Resting Blood Pressure slider
-            trestbps = st.slider(
-                "Resting Blood Pressure (mm Hg)", 
-                int(ranges['trestbps']['min']), 
-                int(ranges['trestbps']['max']), 
-                int(ranges['trestbps']['median']), 
-                1,
-                help="Blood pressure measured at rest before exercise. Around 120 mm Hg is considered normal; "
-                     "values consistently above ~140 may be considered high."
-            )
-            st.markdown('<p class="slider-range-label">Range: %d – %d mm Hg</p>' % (int(ranges['trestbps']['min']), int(ranges['trestbps']['max'])), unsafe_allow_html=True)
+            # Organize inputs into logical medical categories using tabs
+            tab_demo, tab_symp, tab_lab, tab_ecg, tab_img = st.tabs([
+                "👤 Demographics & Vitals", 
+                "🩺 Symptoms", 
+                "🩸 Lab Results", 
+                "🏃‍♂️ Stress Test & ECG",
+                "🩻 Advanced Imaging"
+            ])
             
-            # Cholesterol slider
-            chol = st.slider(
-                "Cholesterol (mg/dl)", 
-                int(ranges['chol']['min']), 
-                int(ranges['chol']['max']), 
-                int(ranges['chol']['median']), 
-                1,
-                help="Total cholesterol level in the blood. Many guidelines consider values below ~200 mg/dl desirable."
-            )
-            st.markdown('<p class="slider-range-label">Range: %d – %d mg/dl</p>' % (int(ranges['chol']['min']), int(ranges['chol']['max'])), unsafe_allow_html=True)
-            
-            # Maximum Heart Rate slider
-            thalach = st.slider(
-                "Max Heart Rate Achieved", 
-                int(ranges['thalach']['min']), 
-                int(ranges['thalach']['max']), 
-                int(ranges['thalach']['median']), 
-                1,
-                help="Highest heart rate reached during an exercise test. "
-                     "Younger people typically reach higher safe maximum heart rates than older people."
-            )
-            st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['thalach']['min']), int(ranges['thalach']['max'])), unsafe_allow_html=True)
-            
-            # ST Depression slider (allows decimal values)
-            oldpeak = st.slider(
-                "ST Depression (oldpeak)", 
-                float(ranges['oldpeak']['min']), 
-                float(ranges['oldpeak']['max']), 
-                float(ranges['oldpeak']['median']), 
-                0.1,  # Step size of 0.1 for decimal precision
-                help="Change in a specific part of the ECG (ST segment) during exercise. "
-                     "Values close to 0 are more typical; higher values can be a sign of reduced blood flow to the heart."
-            )
-            st.markdown('<p class="slider-range-label">Range: %.1f – %.1f</p>' % (float(ranges['oldpeak']['min']), float(ranges['oldpeak']['max'])), unsafe_allow_html=True)
-        
-        # Right column: Categorical features (dropdowns/selectboxes)
-        with col2:
-            # Sex dropdown: 0 = Female, 1 = Male
-            sex = st.selectbox(
-                "Sex",
-                [0, 1],
-                format_func=lambda x: "Female" if x == 0 else "Male",
-                help="Biological sex of the patient (0 = female, 1 = male). "
-                     "In many heart studies, men tend to have higher recorded rates of heart disease at earlier ages."
-            )
-            
-            # Chest Pain Type dropdown with descriptive labels
-            cp = st.selectbox(
-                "Chest Pain Type", 
-                [1, 2, 3, 4], 
-                format_func=lambda x: {
-                    1: "Typical angina", 
-                    2: "Atypical angina", 
-                    3: "Non-anginal", 
-                    4: "Asymptomatic"
-                }[x],
-                help="Type of chest pain reported, where typical angina is classic heart-related chest pain and "
-                     "asymptomatic means no chest pain even though disease may still be present."
-            )
-            
-            # Fasting Blood Sugar dropdown
-            fbs = st.selectbox(
-                "Fasting Blood Sugar > 120",
-                [0, 1],
-                format_func=lambda x: "No" if x == 0 else "Yes",
-                help="Whether fasting blood sugar is greater than 120 mg/dl (1 = yes, 0 = no). "
-                     "Higher fasting blood sugar can be a sign of diabetes or pre-diabetes."
-            )
-            
-            # Exercise Induced Angina dropdown
-            exang = st.selectbox(
-                "Exercise Induced Angina",
-                [0, 1],
-                format_func=lambda x: "No" if x == 0 else "Yes",
-                help="Chest pain brought on by exercise (1 = yes, 0 = no). "
-                     "Angina with exertion can indicate that the heart is not getting enough blood flow."
-            )
-            
-            # Resting ECG dropdown
-            restecg = st.selectbox(
-                "Rest ECG", 
-                [0, 1, 2], 
-                format_func=lambda x: {
-                    0: "Normal", 
-                    1: "ST-T abnormality", 
-                    2: "LV hypertrophy"
-                }[x],
-                help="Result of a resting electrocardiogram (ECG). "
-                     "Normal means a typical tracing; ST‑T abnormalities or left ventricular hypertrophy "
-                     "can suggest strain or thickening of the heart muscle."
-            )
-            
-            # ST Slope dropdown
-            slope = st.selectbox(
-                "ST Slope", 
-                [1, 2, 3], 
-                format_func=lambda x: {
-                    1: "Upsloping", 
-                    2: "Flat", 
-                    3: "Downsloping"
-                }[x],
-                help="Shape (slope) of the ST segment on the ECG during peak exercise. "
-                     "Flat or downsloping patterns are more often associated with ischemia than upsloping patterns."
-            )
-            
-            # Number of Major Vessels slider (categorical but numeric)
-            ca = st.slider(
-                "Number of Major Vessels (0-4)",
-                0,
-                4,
-                0,
-                1,
-                help="Number of major blood vessels seen as open on a special heart imaging test (0–4). "
-                     "Higher numbers generally mean more vessels are clearly visible and open."
-            )
-            st.markdown('<p class="slider-range-label">Range: 0 – 4</p>', unsafe_allow_html=True)
-            
-            # Thalassemia dropdown
-            thal = st.selectbox(
-                "Thalassemia", 
-                [3, 6, 7], 
-                format_func=lambda x: {
-                    3: "Normal", 
-                    6: "Fixed defect", 
-                    7: "Reversible defect"
-                }[x],
-                help="Result of a thallium heart scan. Normal means good blood flow; "
-                     "fixed or reversible defects can point to areas of the heart that are scarred or receive reduced blood flow."
-            )
-        
+            with tab_demo:
+                age = st.slider(
+                    "Age (years)", 
+                    int(ranges['age']['min']), int(ranges['age']['max']), int(ranges['age']['median']), 1,
+                    help="Patient age in years. In this dataset most people are between about 30 and 80 years old."
+                )
+                st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['age']['min']), int(ranges['age']['max'])), unsafe_allow_html=True)
+                
+                sex = st.selectbox(
+                    "Sex", [0, 1], format_func=lambda x: "Female" if x == 0 else "Male",
+                    help="Biological sex of the patient (0 = female, 1 = male)."
+                )
+                
+                trestbps = st.slider(
+                    "Resting Blood Pressure (mm Hg)", 
+                    int(ranges['trestbps']['min']), int(ranges['trestbps']['max']), int(ranges['trestbps']['median']), 1,
+                    help="Blood pressure measured at rest before exercise."
+                )
+                st.markdown('<p class="slider-range-label">Range: %d – %d mm Hg</p>' % (int(ranges['trestbps']['min']), int(ranges['trestbps']['max'])), unsafe_allow_html=True)
+                
+            with tab_symp:
+                cp = st.selectbox(
+                    "Chest Pain Type", [1, 2, 3, 4], 
+                    format_func=lambda x: {1: "Typical angina", 2: "Atypical angina", 3: "Non-anginal", 4: "Asymptomatic"}[x],
+                    help="Type of chest pain reported."
+                )
+                
+                exang = st.selectbox(
+                    "Exercise Induced Angina", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes",
+                    help="Chest pain brought on by exercise (1 = yes, 0 = no)."
+                )
+                
+            with tab_lab:
+                chol = st.slider(
+                    "Cholesterol (mg/dl)", 
+                    int(ranges['chol']['min']), int(ranges['chol']['max']), int(ranges['chol']['median']), 1,
+                    help="Total cholesterol level in the blood."
+                )
+                st.markdown('<p class="slider-range-label">Range: %d – %d mg/dl</p>' % (int(ranges['chol']['min']), int(ranges['chol']['max'])), unsafe_allow_html=True)
+                
+                fbs = st.selectbox(
+                    "Fasting Blood Sugar > 120", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes",
+                    help="Whether fasting blood sugar is greater than 120 mg/dl."
+                )
+                
+            with tab_ecg:
+                thalach = st.slider(
+                    "Max Heart Rate Achieved", 
+                    int(ranges['thalach']['min']), int(ranges['thalach']['max']), int(ranges['thalach']['median']), 1,
+                    help="Highest heart rate reached during an exercise test."
+                )
+                st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['thalach']['min']), int(ranges['thalach']['max'])), unsafe_allow_html=True)
+                
+                restecg = st.selectbox(
+                    "Rest ECG", [0, 1, 2], 
+                    format_func=lambda x: {0: "Normal", 1: "ST-T abnormality", 2: "LV hypertrophy"}[x],
+                    help="Result of a resting electrocardiogram (ECG)."
+                )
+                
+                oldpeak = st.slider(
+                    "ST Depression (oldpeak)", 
+                    float(ranges['oldpeak']['min']), float(ranges['oldpeak']['max']), float(ranges['oldpeak']['median']), 0.1,
+                    help="Change in a specific part of the ECG (ST segment) during exercise."
+                )
+                st.markdown('<p class="slider-range-label">Range: %.1f – %.1f</p>' % (float(ranges['oldpeak']['min']), float(ranges['oldpeak']['max'])), unsafe_allow_html=True)
+                
+                slope = st.selectbox(
+                    "ST Slope", [1, 2, 3], 
+                    format_func=lambda x: {1: "Upsloping", 2: "Flat", 3: "Downsloping"}[x],
+                    help="Shape (slope) of the ST segment on the ECG during peak exercise."
+                )
+                
+            with tab_img:
+                ca = st.slider(
+                    "Number of Major Vessels (0-4)", 0, 4, 0, 1,
+                    help="Number of major blood vessels seen as open on a special heart imaging test (0–4)."
+                )
+                st.markdown('<p class="slider-range-label">Range: 0 – 4</p>', unsafe_allow_html=True)
+                
+                thal = st.selectbox(
+                    "Thalassemia", [3, 6, 7], 
+                    format_func=lambda x: {3: "Normal", 6: "Fixed defect", 7: "Reversible defect"}[x],
+                    help="Result of a thallium heart scan."
+                )
+                
         # Collect all user inputs into a dictionary
         features = {
             'age': age, 'sex': sex, 'cp': cp, 'trestbps': trestbps, 'chol': chol,
@@ -476,28 +417,30 @@ def main():
         # Calculate risk score based on user inputs
         risk = predict_risk_simple(features, df)
         
-        # Display results section
-        st.markdown("---")
-        st.subheader("Estimated Risk Score")
-        
-        # Convert risk (0-1) to percentage (0-100%)
-        risk_pct = risk * 100
-        
-        # Display progress bar (visual indicator of risk level)
-        st.progress(risk)
-        
-        # Display risk as a metric with help text
-        st.metric(
-            "Heart Disease Risk", 
-            f"{risk_pct:.1f}%", 
-            help="Based on centroid distance from disease vs no-disease patient profiles"
-        )
-        
-        # Show warning or success message based on risk level
-        if risk_pct > 50:
-            st.error("⚠️ Higher risk profile - consider consulting a healthcare provider.")
-        else:
-            st.success("✅ Lower risk profile based on these parameters.")
+        # Display results on the right column
+        with result_col:
+            st.subheader("Risk Assessment")
+            
+            # Convert risk (0-1) to percentage (0-100%)
+            risk_pct = risk * 100
+            
+            # Show warning or success message based on risk level
+            if risk_pct > 50:
+                st.error("⚠️ **High Risk Profile**\n\nConsider consulting a healthcare provider or doctor.")
+            else:
+                st.success("✅ **Lower Risk Profile**\n\nLooks good based on these parameters.")
+                
+            st.markdown("---")
+            
+            # Display risk as a metric with help text
+            st.metric(
+                "Estimated Heart Disease Risk", 
+                f"{risk_pct:.1f}%", 
+                help="Based on centroid distance from disease vs no-disease patient profiles."
+            )
+            
+            # Display progress bar (visual indicator of risk level)
+            st.progress(risk)
     
     # Page 3: Data Summary
     else:
