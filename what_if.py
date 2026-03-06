@@ -91,7 +91,7 @@ def render_what_if_analysis(df: pd.DataFrame):
             age = st.slider(
                 "Age (years)", 
                 int(ranges['age']['min']), int(ranges['age']['max']), int(ranges['age']['median']), 1,
-                help="Patient age in years. In this dataset most people are between about 30 and 80 years old."
+                help="Patient age in years.\n\nRisk broadly increases with age."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['age']['min']), int(ranges['age']['max'])), unsafe_allow_html=True)
             
@@ -103,7 +103,7 @@ def render_what_if_analysis(df: pd.DataFrame):
             trestbps = st.slider(
                 "Resting Blood Pressure (mm Hg)", 
                 int(ranges['trestbps']['min']), int(ranges['trestbps']['max']), int(ranges['trestbps']['median']), 1,
-                help="Blood pressure measured at rest before exercise."
+                help="Blood pressure measured at rest before exercise.\n\nHealthy: < 120 mm Hg\nElevated: 120-129 mm Hg\nHigh: ≥ 130 mm Hg\n\nSymptoms of high BP: often none, but can include headaches, shortness of breath, or nosebleeds."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d mm Hg</p>' % (int(ranges['trestbps']['min']), int(ranges['trestbps']['max'])), unsafe_allow_html=True)
             
@@ -123,20 +123,20 @@ def render_what_if_analysis(df: pd.DataFrame):
             chol = st.slider(
                 "Cholesterol (mg/dl)", 
                 int(ranges['chol']['min']), int(ranges['chol']['max']), int(ranges['chol']['median']), 1,
-                help="Total cholesterol level in the blood."
+                help="Total cholesterol level in the blood.\n\nHealthy: < 200 mg/dl\nBorderline high: 200-239 mg/dl\nHigh: ≥ 240 mg/dl\n\nSymptoms: High cholesterol has no symptoms but increases risk of heart disease."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d mg/dl</p>' % (int(ranges['chol']['min']), int(ranges['chol']['max'])), unsafe_allow_html=True)
             
             fbs = st.selectbox(
                 "Fasting Blood Sugar > 120", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes",
-                help="Whether fasting blood sugar is greater than 120 mg/dl."
+                help="Whether fasting blood sugar is greater than 120 mg/dl.\n\nHealthy: < 100 mg/dl\nPrediabetes: 100-125 mg/dl\nDiabetes: ≥ 126 mg/dl\n\nSymptoms of high sugar: increased thirst, frequent urination, fatigue, blurred vision."
             )
             
         with tab_ecg:
             thalach = st.slider(
                 "Max Heart Rate Achieved", 
                 int(ranges['thalach']['min']), int(ranges['thalach']['max']), int(ranges['thalach']['median']), 1,
-                help="Highest heart rate reached during an exercise test."
+                help="Highest heart rate reached during an exercise test.\n\nHealthy max roughly: 220 minus your age.\nLower achieved max HR can indicate poor fitness or heart problems.\n\nSymptoms of abnormal HR: palpitations, dizziness, shortness of breath."
             )
             st.markdown('<p class="slider-range-label">Range: %d – %d</p>' % (int(ranges['thalach']['min']), int(ranges['thalach']['max'])), unsafe_allow_html=True)
             
