@@ -3,6 +3,13 @@ import pandas as pd
 import numpy as np
 from data_cleaning import get_feature_ranges
 
+@st.cache_data
+def get_centroids(df: pd.DataFrame):
+    """Cache the centroid calculations so they don't re-run on every slider change."""
+    disease = df[df['num'] == 1].drop('num', axis=1)
+    no_disease = df[df['num'] == 0].drop('num', axis=1)
+    return disease.mean(), no_disease.mean()
+
 def predict_risk_simple(features: dict, df: pd.DataFrame) -> float:
     """
     Calculate a simple risk score using centroid distance method.
@@ -25,14 +32,9 @@ def predict_risk_simple(features: dict, df: pd.DataFrame) -> float:
         - 0.0 = very low risk (very close to no-disease centroid)
         - 1.0 = very high risk (very close to disease centroid)
     """
-    # Separate data into disease and no-disease groups
-    disease = df[df['num'] == 1].drop('num', axis=1)      # All patients with disease
-    no_disease = df[df['num'] == 0].drop('num', axis=1)    # All patients without disease
-    
-    # Calculate centroids (mean of all features for each group)
+    # Get cached centroids (average of all features for each group)
     # This gives us the "average" patient profile for each group
-    centroid_disease = disease.mean()                      # Average feature values for disease group
-    centroid_no_disease = no_disease.mean()                # Average feature values for no-disease group
+    centroid_disease, centroid_no_disease = get_centroids(df)
     
     # Build feature vector from user input
     # For each feature in the centroid, get the value from user input

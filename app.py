@@ -252,6 +252,15 @@ def main():
     else:
         st.header("Data Summary")
         
+        # Add a download button for the dataset
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Dataset (CSV)",
+            data=csv,
+            file_name="heart_disease_data.csv",
+            mime="text/csv",
+        )
+        
         # Display first 100 rows of the dataset in an interactive table
         # use_container_width=True makes the table use the full width of the page
         st.dataframe(df.head(100), use_container_width=True)
