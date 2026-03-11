@@ -35,8 +35,8 @@ def test_clean_data_binary_target_and_no_missing_markers():
     # After cleaning there should be no '?' or -9 placeholders anywhere
     for col in cleaned.columns:
         assert "?" not in cleaned[col].astype(str).values
-        assert not (cleaned[col] == -9).any()
-        assert not (cleaned[col] == -9.0).any()
+        assert not cleaned[col].eq(-9).any()
+        assert not cleaned[col].eq(-9.0).any()
 
     # Target should be strictly binary 0/1
     unique_targets = set(cleaned[TARGET_COL].unique())
@@ -48,8 +48,8 @@ def test_clean_data_invalid_zero_values_are_imputed():
     cleaned = clean_data(raw)
 
     # No zero chol or trestbps values should remain
-    assert not (cleaned["chol"] == 0).any()
-    assert not (cleaned["trestbps"] == 0).any()
+    assert not cleaned["chol"].eq(0).any()
+    assert not cleaned["trestbps"].eq(0).any()
 
 
 def test_clean_data_categorical_columns_are_int_and_non_null():
@@ -59,6 +59,6 @@ def test_clean_data_categorical_columns_are_int_and_non_null():
     for col in CATEGORICAL_COLS:
         assert col in cleaned.columns
         # No missing values
-        assert not cleaned[col].isna().any()
+        assert cleaned[col].isna().sum() == 0
         # Stored as integers
-        assert np.issubdtype(cleaned[col].dtype, np.integer)
+        assert pd.api.types.is_integer_dtype(cleaned[col])

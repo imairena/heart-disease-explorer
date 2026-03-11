@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from data_cleaning import get_feature_ranges
 
 @st.cache_data
@@ -64,6 +65,27 @@ def predict_risk_simple(features: dict, df: pd.DataFrame) -> float:
     # Ensure risk is between 0 and 1
     return float(np.clip(risk, 0, 1))
 
+@st.cache_resource
+def train_linear_regression(df: pd.DataFrame):
+    """Train and cache a simple Linear Regression model."""
+    X = df.drop('num', axis=1)
+    y = df['num']
+    model = LinearRegression()
+    model.fit(X, y)
+    return model
+
+def predict_risk_ml(features: dict, df: pd.DataFrame) -> float:
+    """Calculate risk score using a trained Linear Regression model."""
+    model = train_linear_regression(df)
+    
+    # Ensure features are in the exact order as training data
+    X_train_columns = df.drop('num', axis=1).columns
+    x_array = np.array([features.get(col, 0) for col in X_train_columns]).reshape(1, -1)
+    
+    # Predict risk and clip to [0, 1] range
+    risk = model.predict(x_array)[0]
+    return float(np.clip(risk, 0, 1))
+
 def render_what_if_analysis(df: pd.DataFrame):
     """
     Render the What-If Analysis page.
@@ -78,6 +100,14 @@ def render_what_if_analysis(df: pd.DataFrame):
     input_col, result_col = st.columns([2, 1])
     
     with input_col:
+        st.subheader("Prediction Model")
+        prediction_model = st.radio(
+            "Select Risk Prediction Method:",
+            ["Simple Heuristic (Centroid)", "Machine Learning (Linear Regression)"],
+            help="Choose between a simple distance-based heuristic or a trained Linear Regression ML model."
+        )
+        st.markdown("---")
+        
         st.subheader("Patient Parameters")
         
         # Organize inputs into logical medical categories using tabs
@@ -181,8 +211,13 @@ def render_what_if_analysis(df: pd.DataFrame):
         'oldpeak': oldpeak, 'slope': slope, 'ca': ca, 'thal': thal
     }
     
-    # Calculate risk score based on user inputs
-    risk = predict_risk_simple(features, df)
+    # Calculate risk score based on user inputs and chosen model
+    if "Linear Regression" in prediction_model:
+        risk = predict_risk_ml(features, df)
+        model_desc = "Based on a Linear Regression machine learning model."
+    else:
+        risk = predict_risk_simple(features, df)
+        model_desc = "Based on centroid distance from disease vs no-disease patient profiles."
     
     # Display results on the right column
     with result_col:
@@ -203,7 +238,7 @@ def render_what_if_analysis(df: pd.DataFrame):
         st.metric(
             "Estimated Heart Disease Risk", 
             f"{risk_pct:.1f}%", 
-            help="Based on centroid distance from disease vs no-disease patient profiles."
+            help=model_desc
         )
         
         # Display progress bar (visual indicator of risk level)
