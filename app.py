@@ -32,37 +32,52 @@ st.set_page_config(
     page_title="Heart Disease Explorer",      # Title shown in browser tab
     page_icon="❤️",                           # Heart emoji as favicon
     layout="wide",                            # Use wide layout (more horizontal space)
-    initial_sidebar_state="expanded"          # Sidebar starts expanded (not collapsed)
+    initial_sidebar_state="collapsed"         # Sidebar starts collapsed (we are using tabs now)
 )
 
 # Custom styling
 st.markdown("""
 <style>
-    .main-header { font-size: 2.5rem; font-weight: 700; color: #e74c3c; margin-bottom: 0.5rem; }
-    .sub-header { color: #7f8c8d; margin-bottom: 2rem; }
+    .main-header { font-size: 2.5rem; font-weight: 700; color: #E06D53; margin-bottom: 0.5rem; transition: color 0.3s ease; }
+    .main-header:hover { color: #E6F1FF; }
+    .sub-header { color: #8892b0; margin-bottom: 2rem; }
     .metric-card { 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+        background: #112240; 
         padding: 1rem; border-radius: 10px; 
-        color: white; margin: 0.5rem 0;
+        color: #E6F1FF; margin: 0.5rem 0;
+        border: 1px solid #233554;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    /* Slider - teal accent for readability on dark background */
-    .stSlider [data-baseweb="thumb"] { background-color: #1abc9c !important; }
-    .stSlider div[data-baseweb="slider"] > div > div { background-color: #1abc9c !important; }
-    
-    /* Slider range labels - always visible, black text */
-    .slider-range-label { color: #ffffff !important; font-size: 0.85rem; opacity: 0.9; }
-    
-    /* Slider hover tooltip - simple, matches dark theme (tooltips render in portal) */
-    [data-baseweb="popover"],
-    [role="tooltip"] {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: none !important;
-        border-radius: 4px !important;
-        box-shadow: none !important;
-        padding: 4px 8px !important;
-        font-size: 0.9rem !important;
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        border-color: #E06D53;
     }
+    
+    /* Button hover effects */
+    .stButton>button {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(224, 109, 83, 0.2);
+    }
+    
+    /* Tab hover effects */
+    .stTabs [data-baseweb="tab-list"] button {
+        transition: color 0.3s ease, background-color 0.3s ease;
+    }
+    .stTabs [data-baseweb="tab-list"] button:hover {
+        color: #E06D53 !important;
+        background-color: rgba(224, 109, 83, 0.1);
+        border-radius: 4px;
+    }
+    
+    /* Slider - match theme */
+    .stSlider [data-baseweb="thumb"] { background-color: #E06D53 !important; }
+    .stSlider div[data-baseweb="slider"] > div > div { background-color: #E06D53 !important; }
+    .slider-range-label { color: #E6F1FF !important; font-size: 0.85rem; opacity: 0.9; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -169,28 +184,11 @@ def main():
     # Load and clean the data (cached, so only runs once)
     df, data_dir = load_and_clean_data()
     
-    # Sidebar - Navigation menu
-    st.sidebar.title("Navigation")
-    # Radio buttons for page selection (user can choose which page to view)
-    page = st.sidebar.radio(
-        "Go to",
-        ["📊 Overview & Visualizations", "🎯 What-If Analysis", "📁 Data Summary"]
-    )
-    
-    # Key metrics displayed in sidebar (always visible)
-    st.sidebar.markdown("---")  # Horizontal divider
-    st.sidebar.markdown("### Dataset Stats")
-    
-    # Display total number of records in the dataset
-    st.sidebar.metric("Total Records", len(df))
-    
-    # Calculate and display disease prevalence
-    # Mean of 'num' (0 or 1) gives the percentage of cases with disease
-    disease_pct = df['num'].mean() * 100
-    st.sidebar.metric("Disease Prevalence", f"{disease_pct:.1f}%")
+    # Create horizontal tabs instead of sidebar navigation
+    tab1, tab2, tab3 = st.tabs(["📊 Overview & Visualizations", "🎯 What-If Analysis", "📁 Data Summary"])
     
     # Page 1: Overview & Visualizations
-    if page == "📊 Overview & Visualizations":
+    with tab1:
         st.header("High-Impact Visualizations")
         
         # Create two columns for side-by-side layout
@@ -245,12 +243,27 @@ def main():
             plt.close()
     
     # Page 2: What-If Analysis
-    elif page == "🎯 What-If Analysis":
+    with tab2:
         render_what_if_analysis(df)
     
     # Page 3: Data Summary
-    else:
+    with tab3:
         st.header("Data Summary")
+        
+        # Key metrics displayed in Data Summary
+        st.markdown("### Dataset Stats")
+        col_stats1, col_stats2 = st.columns(2)
+        
+        # Display total number of records in the dataset
+        with col_stats1:
+            st.metric("Total Records", len(df))
+        
+        # Calculate and display disease prevalence
+        with col_stats2:
+            disease_pct = df['num'].mean() * 100
+            st.metric("Disease Prevalence", f"{disease_pct:.1f}%")
+        
+        st.markdown("---")
         
         # Add a download button for the dataset
         csv = df.to_csv(index=False).encode('utf-8')
@@ -269,7 +282,6 @@ def main():
         # Display descriptive statistics (count, mean, std, min, max, quartiles)
         # This gives users a quick overview of the data distribution
         st.dataframe(df.describe(), use_container_width=True)
-
 
 if __name__ == '__main__':
     main()

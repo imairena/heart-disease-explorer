@@ -137,7 +137,7 @@ def plot_target_breakdown(df):
     # Right plot: Bar chart showing disease rate by age group
     # Create age groups using pandas cut function
     # Bins define the boundaries: 0-40, 40-50, 50-60, 60-70, 70-100
-    df['age_group'] = pd.cut(
+    age_group = pd.cut(
         df['age'], 
         bins=[0, 40, 50, 60, 70, 100], 
         labels=['<40', '40-50', '50-60', '60-70', '70+']
@@ -145,7 +145,7 @@ def plot_target_breakdown(df):
     
     # Calculate disease rate (percentage) for each age group
     # Group by age_group, take mean of 'num' (0 or 1), multiply by 100 for percentage
-    age_rates = df.groupby('age_group')['num'].mean() * 100
+    age_rates = df.groupby(age_group)['num'].mean() * 100
     
     # Create bar chart
     age_rates.plot(kind='bar', ax=axes[1], color='#e74c3c', edgecolor='black')
