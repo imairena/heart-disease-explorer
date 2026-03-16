@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from data_cleaning import clean_data, TARGET_COL, CATEGORICAL_COLS
