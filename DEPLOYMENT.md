@@ -87,20 +87,12 @@ If you prefer to use raw data, also commit the processed `.data` files in `data/
 
 ---
 
-## Optional: Add a `.streamlit/config.toml`
+## Automated CI/CD (GitHub Actions)
 
-Create `heart-disease-app/.streamlit/config.toml`:
+This repository includes a preconfigured GitHub Actions continuous integration pipeline (`.github/workflows/ci.yml`). This ensures that your deployed code meets code quality standards by automatically running **`pytest`** and **`flake8`** on every push to your main branch.
 
-```toml
-[theme]
-primaryColor = "#e74c3c"
-backgroundColor = "#0e1117"
-secondaryBackgroundColor = "#262730"
-textColor = "#fafafa"
-font = "sans serif"
+---
 
-[server]
-headless = true
-```
+## Pre-configured Theme
 
-Then commit and push for a custom theme.
+The code is pre-packaged with Streamlit custom styling (`.streamlit/config.toml`). The color scheme and design values will be automatically parsed when rendering on Streamlit Community Cloud and matches the layout design properly.
