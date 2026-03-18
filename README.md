@@ -8,6 +8,7 @@ A Streamlit app for exploring the UCI Heart Disease dataset with visualizations,
 - **4 Visualizations**: Correlation heatmap, feature distributions by target, overall target breakdown, and risk factor box plots.
 - **What-If Sliders**: Adjust patient parameters dynamically across demographics, symptoms, lab results, and ECG to determine risk.
 - **Machine Learning Predictions**: Toggle between a simple distance-based heuristic (centroid calculation) and a trained Linear Regression model to predict patient risk outcomes.
+- **AI Medical Assistant**: An integrated Google Gemini chatbot that explains risk scores and provides health tips based on the selected What-If parameters.
 - **Automated CI/CD**: Uses GitHub Actions for continuous integration, validating code quality with `pytest` and `flake8` on push/PR.
 
 ## Quick Start
@@ -28,7 +29,11 @@ python3 data_cleaning.py
 flake8 . --exclude=venv --max-line-length=120 --extend-ignore=E1,E2,E3,W,E501
 pytest
 
-# 5. Run the app
+# 5. Configure API Key
+# Create a .streamlit/secrets.toml file (ignored by git) and add your free Google Gemini API key:
+# GEMINI_API_KEY = "your_api_key_here"
+
+# 6. Run the app
 streamlit run app.py
 ```
 
@@ -37,7 +42,7 @@ streamlit run app.py
 ```text
 heart-disease-app/
 ├── .github/workflows/  # CI pipeline config (linting & testing)
-├── .streamlit/         # Streamlit custom styling & configuration
+├── .streamlit/         # Streamlit styling & secrets config (secrets.toml)
 ├── tests/              # Pytest unit and integration tests
 ├── app.py              # Main Streamlit application entrypoint
 ├── data_cleaning.py    # Data standardisation and processing

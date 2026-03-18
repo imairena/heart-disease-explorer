@@ -62,6 +62,21 @@ git push -u origin main
 
 ---
 
+## Step 5: Configure API Secrets
+
+The AI Medical Assistant feature requires a Google Gemini API key to function. You must add this key to your Streamlit Cloud environment to avoid committing it to GitHub.
+
+1. Go to your dashboard at [share.streamlit.io](https://share.streamlit.io).
+2. Click the **⋮ (three dots)** menu next to your `heart-disease-explorer` app and select **Settings** (or click "Manage App" from inside the app, and click the three dots in the corner).
+3. Select **Secrets** from the settings menu.
+4. In the text area, paste your API key in TOML format:
+   ```toml
+   GEMINI_API_KEY = "your_actual_api_key_here"
+   ```
+5. Click **Save**. Your app will securely read the key and the AI Chatbot will be fully operational.
+
+---
+
 ## Important: Data Must Be in the Repo
 
 The app uses `data/heart_disease_cleaned.csv`. Make sure it’s committed:
@@ -84,6 +99,7 @@ If you prefer to use raw data, also commit the processed `.data` files in `data/
 | Module not found | Ensure `requirements.txt` lists all dependencies. |
 | Slow first load | Normal; Streamlit Cloud spins up on first visit. |
 | Need to redeploy | Push new commits; Streamlit redeploys automatically. |
+| Chatbot not responding | Ensure your `GEMINI_API_KEY` is configured correctly in App Settings -> Secrets. |
 
 ---
 
