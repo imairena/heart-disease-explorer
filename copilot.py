@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import html
 
 from ai_service import ask_ai, get_gemini_api_key
 
