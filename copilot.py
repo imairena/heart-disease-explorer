@@ -28,12 +28,23 @@ def _format_what_if_context() -> str:
     )
 
 
-def _build_context(df: pd.DataFrame, focus: str) -> str:
+@st.cache_data
+def _compute_data_summary(df: pd.DataFrame):
     disease_pct = df["num"].mean() * 100
     numeric = [c for c in df.columns if c != "num"]
     corr = df[numeric + ["num"]].corr(numeric_only=True)["num"].drop("num").sort_values(key=abs, ascending=False)
     top_corr = corr.head(5)
     corr_text = ", ".join([f"{k} ({v:+.2f})" for k, v in top_corr.items()])
+    
+    desc = df.describe().transpose()
+    top_std = desc["std"].sort_values(ascending=False).head(4)
+    std_text = ", ".join([f"{idx} (std={val:.2f})" for idx, val in top_std.items()])
+
+    return disease_pct, corr_text, std_text
+
+
+def _build_context(df: pd.DataFrame, focus: str) -> str:
+    disease_pct, corr_text, std_text = _compute_data_summary(df)
 
     base = (
         "App: Heart Disease Explorer (educational).\n"
@@ -51,9 +62,6 @@ def _build_context(df: pd.DataFrame, focus: str) -> str:
     elif focus == "What-If Analysis":
         focus_text = "User focus: What-If Analysis.\n" + _format_what_if_context()
     elif focus == "Data Summary":
-        desc = df.describe().transpose()
-        top_std = desc["std"].sort_values(ascending=False).head(4)
-        std_text = ", ".join([f"{idx} (std={val:.2f})" for idx, val in top_std.items()])
         focus_text = (
             "User focus: Data Summary.\n"
             f"Highest-variance features: {std_text}.\n"
@@ -112,33 +120,26 @@ def render_global_copilot(df: pd.DataFrame):
     .st-key-copilot_panel h4, .st-key-copilot_panel h2, .st-key-copilot_panel h3, .st-key-copilot_panel p, .st-key-copilot_panel label, .st-key-copilot_panel div, .st-key-copilot_panel span {
         color: #111111 !important;
     }
+
+    /* Bulletproof Conversation thread styling matching the light grey shell */
+    .st-key-copilot_chat_history_box,
+    div[data-testid="stVerticalBlockWrapper"]:has(.st-key-copilot_chat_history_box),
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-copilot_chat_history_box) {
+        background-color: #EEEEEF !important;
+        border: 1px solid #E2E2E5 !important;
+        border-radius: 12px !important;
+        padding: 5px !important;
+    }
     
-    .copilot-msg-user {
-        background: #FFE9E2;
-        border: 1px solid #F6C2B4;
-        color: #111111;
-        border-radius: 10px;
-        padding: 8px 10px;
-        margin: 8px 0;
+    .st-key-copilot_chat_history_box [data-testid="stScrollableContainer"] {
+        background-color: transparent !important;
     }
-    .copilot-msg-assistant {
-        background: #FFFFFF;
-        border: 1px solid #DDDDDD;
-        color: #111111;
-        border-radius: 10px;
-        padding: 8px 10px;
-        margin: 8px 0;
+    
+    /* Make the chat messages themselves match the container tint */
+    .st-key-copilot_panel [data-testid="stChatMessage"] {
+        background-color: transparent !important;
     }
-    /* Conversation thread: light grey shell so chat is distinct from controls */
-    .copilot-conversation-box {
-        background: #EEEEEF;
-        border: 1px solid #E2E2E5;
-        border-radius: 12px;
-        padding: 12px;
-        margin: 10px 0;
-        max-height: 38vh;
-        overflow-y: auto;
-    }
+
     .st-key-copilot_close_btn button,
     .st-key-copilot_send_btn button,
     .st-key-copilot_clear_btn button {
@@ -200,11 +201,31 @@ def render_global_copilot(df: pd.DataFrame):
         st.session_state.copilot_focus = "General"
     if "copilot_open" not in st.session_state:
         st.session_state.copilot_open = False
-    if "copilot_input_nonce" not in st.session_state:
-        st.session_state.copilot_input_nonce = 0
+    if "copilot_pending_prompt" not in st.session_state:
+        st.session_state.copilot_pending_prompt = None
 
-    if st.button("🤖", key="open_copilot_fab", help="Open AI Copilot"):
+    def open_copilot():
         st.session_state.copilot_open = True
+
+    def close_copilot():
+        st.session_state.copilot_open = False
+
+    def clear_copilot():
+        st.session_state.global_messages = [
+            {
+                "role": "assistant",
+                "content": "Hello, I am your AI assistant. Feel free to ask questions about visualizations, trends, risk factors, and your What-If profile.",
+            }
+        ]
+
+    def submit_copilot():
+        prompt = st.session_state.get("copilot_input_widget", "").strip()
+        if prompt:
+            st.session_state.global_messages.append({"role": "user", "content": prompt})
+            st.session_state.copilot_pending_prompt = prompt
+        st.session_state.copilot_input_widget = ""
+
+    st.button("🤖", key="open_copilot_fab", help="Open AI Copilot", on_click=open_copilot)
 
     if not st.session_state.copilot_open:
         return
@@ -223,9 +244,7 @@ def render_global_copilot(df: pd.DataFrame):
         with top_cols[0]:
             st.markdown("#### AI Copilot")
         with top_cols[1]:
-            if st.button("✕", key="copilot_close_btn", help="Close panel"):
-                st.session_state.copilot_open = False
-                st.rerun()
+            st.button("✕", key="copilot_close_btn", help="Close panel", on_click=close_copilot)
 
         st.caption("Ask about risks, visualizations, trends, and your What-If profile.")
 
@@ -237,53 +256,37 @@ def render_global_copilot(df: pd.DataFrame):
         )
 
         clear_col, _ = st.columns([1, 4])
-        if clear_col.button("New chat", key="copilot_clear_btn", help="Clear conversation"):
-            st.session_state.global_messages = [
-                {
-                    "role": "assistant",
-                    "content": "Hello, I am your AI assistant. Feel free to ask questions about visualizations, trends, risk factors, and your What-If profile.",
-                }
-            ]
+        clear_col.button("New chat", key="copilot_clear_btn", help="Clear conversation", on_click=clear_copilot)
 
-        conv_parts = []
-        for message in st.session_state.global_messages:
-            cls = "copilot-msg-user" if message["role"] == "user" else "copilot-msg-assistant"
-            safe_content = html.escape(message["content"]).replace("\n", "<br>")
-            conv_parts.append(f'<div class="{cls}">{safe_content}</div>')
-        st.markdown(
-            f'<div class="copilot-conversation-box">{"".join(conv_parts)}</div>',
-            unsafe_allow_html=True,
-        )
+        pending = st.session_state.copilot_pending_prompt
+        if pending:
+            st.session_state.copilot_pending_prompt = None
+            if not get_gemini_api_key():
+                st.error("API key missing. Add `GEMINI_API_KEY` to `.streamlit/secrets.toml`.")
+            else:
+                try:
+                    context = _build_context(df, st.session_state.copilot_focus)
+                    with st.spinner("Thinking..."):
+                        answer = ask_ai(pending, context, st.session_state.global_messages)
+                    st.session_state.global_messages.append({"role": "assistant", "content": answer})
+                except Exception as exc:
+                    st.error(f"AI error: {exc}")
+
+        chat_container = st.container(height=350, border=True, key="copilot_chat_history_box")
+        with chat_container:
+            for message in st.session_state.global_messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
         input_col, send_col = st.columns([4, 1])
         with input_col:
-            # New key after each successful send so the field resets without touching
-            # session_state after the widget is instantiated (Streamlit restriction).
-            _input_key = f"global_copilot_input_text_{st.session_state.copilot_input_nonce}"
-            typed_prompt = st.text_input(
+            st.text_input(
                 "Message",
                 value="",
                 placeholder="Ask about visualizations, risk, trends, or prevention ideas...",
-                key=_input_key,
+                key="copilot_input_widget",
                 label_visibility="collapsed",
+                on_change=submit_copilot
             )
         with send_col:
-            send_clicked = st.button("Send", key="copilot_send_btn", use_container_width=True)
-
-        prompt = typed_prompt.strip() if send_clicked else ""
-
-        if prompt:
-            if not get_gemini_api_key():
-                st.error("API key missing. Add `GEMINI_API_KEY` to `.streamlit/secrets.toml`.")
-                return
-
-            st.session_state.global_messages.append({"role": "user", "content": prompt})
-
-            try:
-                context = _build_context(df, st.session_state.copilot_focus)
-                with st.spinner("Thinking..."):
-                    answer = ask_ai(prompt, context, st.session_state.global_messages)
-                st.session_state.global_messages.append({"role": "assistant", "content": answer})
-                st.session_state.copilot_input_nonce += 1
-            except Exception as exc:
-                st.error(f"AI error: {exc}")
+            st.button("Send", key="copilot_send_btn", use_container_width=True, on_click=submit_copilot)
