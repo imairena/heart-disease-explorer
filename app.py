@@ -25,6 +25,7 @@ from visualizations import plot_correlation_heatmap, plot_feature_distributions,
 
 # Import what-if analysis
 from what_if import render_what_if_analysis
+from copilot import render_global_copilot
 
 # Configure the Streamlit page settings
 # This must be called before any other Streamlit commands
@@ -282,6 +283,9 @@ def main():
         # Display descriptive statistics (count, mean, std, min, max, quartiles)
         # This gives users a quick overview of the data distribution
         st.dataframe(df.describe(), use_container_width=True)
+
+    # Global AI copilot (shared across all pages/tabs)
+    render_global_copilot(df)
 
 if __name__ == '__main__':
     main()

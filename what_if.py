@@ -3,12 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from data_cleaning import get_feature_ranges
-import google.generativeai as genai
-
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-except (KeyError, FileNotFoundError):
-    GEMINI_API_KEY = ""
 
 @st.cache_data
 def get_centroids(df: pd.DataFrame):
@@ -250,60 +244,20 @@ def render_what_if_analysis(df: pd.DataFrame):
         # Display progress bar (visual indicator of risk level)
         st.progress(risk)
 
-    # --- AI Chatbot Section ---
-    st.markdown("---")
-    st.subheader("🤖 AI Medical Assistant")
-    st.markdown("Ask the AI to explain your risk score or how to improve your health based on your inputs.")
-    
-    if not GEMINI_API_KEY:
-        st.info("💡 **Tip:** To activate the AI Assistant, open `.streamlit/secrets.toml` and paste your free Google Gemini API Key.")
-        
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-        
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            
-    # React to user input
-    if prompt := st.chat_input("Ask about your risk score or how to lower it..."):
-        if not GEMINI_API_KEY:
-            st.error("API Key missing! Please add your Gemini API Key to `.streamlit/secrets.toml`.")
-        else:
-            # Display user message in chat message container
-            st.chat_message("user").markdown(prompt)
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
-
-            try:
-                # Configure API
-                genai.configure(api_key=GEMINI_API_KEY)
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                
-                # Build context
-                context = f"""
-You are a helpful medical AI assistant integrated into a Heart Disease Explorer app.
-Current patient parameters:
-- Age: {age} | Sex: {"Male" if sex == 1 else "Female"}
-- Blood Pressure: {trestbps} mm Hg | Cholesterol: {chol} mg/dl
-- Fasting Blood Sugar > 120: {"Yes" if fbs == 1 else "No"}
-- Max Heart Rate: {thalach} | Chest Pain Type: {cp}
-Model predicted Heart Disease Risk: {risk_pct:.1f}%
-
-User question: {prompt}
-
-Answer briefly, empathetically, and accurately based on their parameters.
-Always include a short disclaimer that you are an AI, not a doctor.
-"""
-                with st.spinner("Analyzing..."):
-                    response = model.generate_content(context)
-                
-                with st.chat_message("assistant"):
-                    st.markdown(response.text)
-                
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-                
-            except Exception as e:
-                st.error(f"Error communicating with AI: {e}")
+    # Save latest What-If state so the global copilot can answer with patient-specific context.
+    st.session_state["what_if_context"] = {
+        "prediction_model": prediction_model,
+        "model_description": model_desc,
+        "risk": risk,
+        "risk_pct": risk_pct,
+        "features": features,
+        "display_values": {
+            "sex": "Male" if sex == 1 else "Female",
+            "cp": {1: "Typical angina", 2: "Atypical angina", 3: "Non-anginal", 4: "Asymptomatic"}[cp],
+            "fbs": "Yes" if fbs == 1 else "No",
+            "restecg": {0: "Normal", 1: "ST-T abnormality", 2: "LV hypertrophy"}[restecg],
+            "exang": "Yes" if exang == 1 else "No",
+            "slope": {1: "Upsloping", 2: "Flat", 3: "Downsloping"}[slope],
+            "thal": {3: "Normal", 6: "Fixed defect", 7: "Reversible defect"}[thal],
+        },
+    }
