@@ -13,7 +13,7 @@ The app loads cleaned data from a CSV file (if available) or processes raw data 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+
 from pathlib import Path
 
 # Import functions from our data cleaning module
@@ -33,7 +33,7 @@ st.set_page_config(
     page_title="Heart Disease Explorer",      # Title shown in browser tab
     page_icon="❤️",                           # Heart emoji as favicon
     layout="wide",                            # Use wide layout (more horizontal space)
-    initial_sidebar_state="collapsed"         # Sidebar starts collapsed (we are using tabs now)
+    initial_sidebar_state="collapsed"         # Sidebar starts collapsed
 )
 
 # Custom styling
@@ -74,11 +74,6 @@ st.markdown("""
         background-color: rgba(224, 109, 83, 0.1);
         border-radius: 4px;
     }
-    
-    /* Slider - match theme */
-    .stSlider [data-baseweb="thumb"] { background-color: #E06D53 !important; }
-    .stSlider div[data-baseweb="slider"] > div > div { background-color: #E06D53 !important; }
-    .slider-range-label { color: #E6F1FF !important; font-size: 0.85rem; opacity: 0.9; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -192,6 +187,40 @@ def main():
     with tab1:
         st.header("High-Impact Visualizations")
         
+        # Dynamic Filtering in an Expander
+        with st.expander("🔍︎ Filter Visualizations", expanded=True):
+            st.markdown("Adjust these filters to focus the charts on specific patient groups.")
+            f_col1, f_col2, f_col3 = st.columns(3)
+            
+            with f_col1:
+                age_min, age_max = int(df['age'].min()), int(df['age'].max())
+                selected_age = st.slider("Age Range", age_min, age_max, (age_min, age_max))
+                
+            with f_col2:
+                sex_filter = st.multiselect("Sex", ["Female (0)", "Male (1)"], ["Female (0)", "Male (1)"])
+                sex_map = {"Female (0)": 0, "Male (1)": 1}
+                selected_sex = [sex_map[s] for s in sex_filter] if sex_filter else [0, 1]
+                
+            with f_col3:
+                chest_pain = st.multiselect(
+                    "Chest Pain Type", 
+                    ["Typical angina (1)", "Atypical angina (2)", "Non-anginal (3)", "Asymptomatic (4)"],
+                    ["Typical angina (1)", "Atypical angina (2)", "Non-anginal (3)", "Asymptomatic (4)"]
+                )
+                cp_map = {"Typical angina (1)": 1, "Atypical angina (2)": 2, "Non-anginal (3)": 3, "Asymptomatic (4)": 4}
+                selected_cp = [cp_map[c] for c in chest_pain] if chest_pain else [1, 2, 3, 4]
+
+        filtered_df = df[
+            (df['age'] >= selected_age[0]) & 
+            (df['age'] <= selected_age[1]) & 
+            (df['sex'].isin(selected_sex)) &
+            (df['cp'].isin(selected_cp))
+        ]
+        
+        if filtered_df.empty:
+            st.warning("No records match these filters. Showing all data instead.")
+            filtered_df = df
+            
         # Create two columns for side-by-side layout
         col1, col2 = st.columns(2)
         
@@ -204,9 +233,8 @@ def main():
                 "(they increase together), blue squares mean when one is high the other tends to be low."
             )
             # Create and display correlation heatmap
-            fig1 = plot_correlation_heatmap(df)
-            st.pyplot(fig1)  # Display the matplotlib figure in Streamlit
-            plt.close()  # Close figure to free memory
+            fig1 = plot_correlation_heatmap(filtered_df)
+            st.plotly_chart(fig1, use_container_width=True)
             
             st.subheader("3. Target & Age Breakdown")
             st.markdown(
@@ -215,9 +243,8 @@ def main():
                 "so you can see how risk changes as people get older."
             )
             # Create and display target breakdown (pie chart + age groups)
-            fig3 = plot_target_breakdown(df)
-            st.pyplot(fig3)
-            plt.close()
+            fig3 = plot_target_breakdown(filtered_df)
+            st.plotly_chart(fig3, use_container_width=True)
         
         # Right column: Feature distributions and risk factors
         with col2:
@@ -228,9 +255,8 @@ def main():
                 "so you can see, for example, whether higher cholesterol or blood pressure appears more often in the disease group."
             )
             # Create and display feature distribution histograms
-            fig2 = plot_feature_distributions(df)
-            st.pyplot(fig2)
-            plt.close()
+            fig2 = plot_feature_distributions(filtered_df)
+            st.plotly_chart(fig2, use_container_width=True)
             
             st.subheader("4. Risk Factors Comparison")
             st.markdown(
@@ -239,9 +265,8 @@ def main():
                 "Taller or higher boxes in the disease group suggest that factor tends to be worse when disease is present."
             )
             # Create and display risk factor box plots
-            fig4 = plot_risk_factors(df)
-            st.pyplot(fig4)
-            plt.close()
+            fig4 = plot_risk_factors(filtered_df)
+            st.plotly_chart(fig4, use_container_width=True)
     
     # Page 2: What-If Analysis
     with tab2:
@@ -252,7 +277,7 @@ def main():
         st.header("Data Summary")
         
         # Key metrics displayed in Data Summary
-        st.markdown("### Dataset Stats")
+        st.markdown("### Dataset Stats (All Records)")
         col_stats1, col_stats2 = st.columns(2)
         
         # Display total number of records in the dataset
@@ -261,7 +286,7 @@ def main():
         
         # Calculate and display disease prevalence
         with col_stats2:
-            disease_pct = df['num'].mean() * 100
+            disease_pct = df['num'].mean() * 100 if len(df) > 0 else 0
             st.metric("Disease Prevalence", f"{disease_pct:.1f}%")
         
         st.markdown("---")

@@ -1,206 +1,172 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 def plot_correlation_heatmap(df):
     """
-    Create a correlation heatmap showing relationships between all features.
-    
-    This visualization helps identify which features are strongly correlated with
-    each other and with the target variable. High correlation can indicate:
-    - Redundant features (high correlation between features)
-    - Important predictors (high correlation with target)
-    
-    Args:
-        df: DataFrame with all features and target
-        
-    Returns:
-        Matplotlib figure object to display in Streamlit
+    Create an interactive correlation heatmap using Plotly.
     """
-    # Create a figure with specific size (width=12, height=10 inches)
-    fig, ax = plt.subplots(figsize=(12, 10))
-    
-    # Calculate correlation matrix (Pearson correlation coefficient)
-    # Values range from -1 (perfect negative correlation) to +1 (perfect positive)
+    if len(df) < 2:
+        return go.Figure().add_annotation(text="Not enough data for correlation heatmap", showarrow=False)
+
     corr = df.corr()
     
-    # Create a mask to show only the upper triangle of the heatmap
-    # This avoids redundancy (correlation of A with B is same as B with A)
-    # k=1 means we exclude the diagonal (correlation of feature with itself = 1.0)
-    mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
+    # Hide the upper triangle by setting it to NaN
+    # np.triu_indices_from gets the indices for the upper triangle
+    z_vals = corr.values.astype(float).copy()
+    z_vals[np.triu_indices_from(z_vals, k=1)] = np.nan
     
-    # Create a diverging color palette (blue for negative, red for positive)
-    # This makes it easy to see positive vs negative correlations
-    cmap = sns.diverging_palette(250, 15, s=75, l=40, n=9, center='light', as_cmap=True)
+    fig = go.Figure(data=go.Heatmap(
+        z=z_vals,
+        x=corr.columns,
+        y=corr.columns,
+        colorscale='RdBu_r',  # red positive, blue negative
+        zmin=-1, zmax=1,
+        text=np.round(z_vals, 2),
+        texttemplate='%{text}',
+        hovertext=[[f"X: {x}<br>Y: {y}<br>Corr: {z:.2f}" if not np.isnan(z) else "" 
+                    for x, z in zip(corr.columns, row)] 
+                   for y, row in zip(corr.index, z_vals)],
+        hoverinfo='text',
+        showscale=True
+    ))
     
-    # Create the heatmap
-    sns.heatmap(
-        corr,                    # Correlation matrix to plot
-        mask=mask,               # Hide lower triangle
-        annot=True,              # Show correlation values in each cell
-        fmt='.2f',               # Format numbers to 2 decimal places
-        cmap=cmap,               # Color scheme
-        center=0,                # Center colormap at 0 (neutral correlation)
-        square=True,             # Make cells square-shaped
-        linewidths=0.5,          # Width of lines between cells
-        ax=ax,                   # Plot on our axis
-        annot_kws={'size': 9}    # Font size for correlation values
+    fig.update_layout(
+        title='Feature Correlation Heatmap',
+        title_font=dict(size=16),
+        height=600,
+        margin=dict(l=60, r=40, t=60, b=60),
+        xaxis=dict(tickangle=-45),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
     )
-    
-    ax.set_title('Feature Correlation Heatmap', fontsize=14, fontweight='bold')
-    plt.tight_layout()  # Adjust spacing to prevent label cutoff
     return fig
-
 
 def plot_feature_distributions(df):
     """
-    Plot distributions of numeric features, comparing disease vs no-disease groups.
-    
-    This visualization shows how the distribution of each numeric feature differs
-    between patients with heart disease and those without. This helps identify
-    which features are most predictive of disease status.
-    
-    Args:
-        df: DataFrame with features and target variable
-        
-    Returns:
-        Matplotlib figure with multiple subplots
+    Plot interactive distributions of numeric features using Plotly.
     """
-    # List of numeric features to visualize
     numeric_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
     
-    # Create a 2x3 grid of subplots (6 total, but we only need 5)
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
-    axes = axes.flatten()  # Convert 2D array to 1D for easier iteration
+    fig = make_subplots(rows=2, cols=3, subplot_titles=numeric_cols,
+                        vertical_spacing=0.15, horizontal_spacing=0.1)
     
-    # Plot each numeric feature
+    colors = {0: '#2ecc71', 1: '#e74c3c'}
+    names = {0: 'No Disease', 1: 'Disease'}
+    
     for i, col in enumerate(numeric_cols):
-        ax = axes[i]
+        row = (i // 3) + 1
+        col_pos = (i % 3) + 1
         
-        # Plot histogram for each target class (disease vs no disease)
-        for target_val, label in [(0, 'No Disease'), (1, 'Disease')]:
-            # Get subset of data for this target class and feature
+        for target_val in [0, 1]:
             subset = df[df['num'] == target_val][col]
+            fig.add_trace(go.Histogram(
+                x=subset,
+                name=names[target_val],
+                marker_color=colors[target_val],
+                opacity=0.7,
+                histnorm='probability density',
+                showlegend=(i == 0) # Only show legend once on the first subplot
+            ), row=row, col=col_pos)
             
-            # Create histogram with density=True (shows probability density, not counts)
-            # This makes it easier to compare distributions even if class sizes differ
-            ax.hist(subset, bins=20, alpha=0.6, label=label, density=True)
-        
-        # Customize the subplot
-        ax.set_title(col, fontweight='bold')
-        ax.set_xlabel(col)
-        ax.legend()  # Show legend with 'No Disease' and 'Disease' labels
-        ax.grid(True, alpha=0.3)  # Add light grid for easier reading
+    fig.update_layout(
+        title='Feature Distributions by Heart Disease Status',
+        title_font=dict(size=16),
+        barmode='overlay',
+        height=600,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
     
-    # Hide the last (6th) subplot since we only have 5 features
-    axes[-1].axis('off')
-    
-    # Add overall title to the figure
-    fig.suptitle('Feature Distributions by Heart Disease Status', fontsize=14, fontweight='bold', y=1.02)
-    plt.tight_layout()  # Adjust spacing
     return fig
-
 
 def plot_target_breakdown(df):
     """
-    Create visualizations showing target variable breakdown and age-based analysis.
-    
-    This function creates two visualizations:
-    1. Pie chart showing overall disease prevalence
-    2. Bar chart showing disease rate by age group
-    
-    Args:
-        df: DataFrame with features and target variable
-        
-    Returns:
-        Matplotlib figure with two subplots
+    Create interactive visualizations showing target variable breakdown and age-based analysis.
     """
-    # Create a figure with 1 row and 2 columns
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig = make_subplots(rows=1, cols=2, specs=[[{"type": "pie"}, {"type": "bar"}]],
+                        subplot_titles=['Heart Disease Prevalence', 'Disease Rate by Age Group (%)'])
     
-    # Left plot: Pie chart showing disease prevalence
-    # Count how many cases have disease (1) vs no disease (0)
     counts = df['num'].value_counts()
-    colors = ['#2ecc71', '#e74c3c']  # Green for no disease, red for disease
     
-    axes[0].pie(
-        counts,                                    # Values to plot
-        labels=['No Disease', 'Disease'],          # Labels for each slice
-        autopct='%1.1f%%',                        # Show percentage with 1 decimal place
-        colors=colors,                            # Color scheme
-        explode=(0, 0.05),                        # Slightly separate the disease slice (emphasis)
-        startangle=90                             # Start angle (top of pie)
-    )
-    axes[0].set_title('Heart Disease Prevalence', fontweight='bold')
+    # Left plot: Pie chart
+    fig.add_trace(go.Pie(
+        labels=['No Disease', 'Disease'],
+        values=[counts.get(0, 0), counts.get(1, 0)],
+        marker=dict(colors=['#2ecc71', '#e74c3c']),
+        hole=0.4,
+        hoverinfo="label+percent+value",
+        textinfo="percent"
+    ), row=1, col=1)
     
-    # Right plot: Bar chart showing disease rate by age group
-    # Create age groups using pandas cut function
-    # Bins define the boundaries: 0-40, 40-50, 50-60, 60-70, 70-100
+    # Right plot: Bar chart
+    # Use observed=False to avoid future warnings
     age_group = pd.cut(
         df['age'], 
         bins=[0, 40, 50, 60, 70, 100], 
         labels=['<40', '40-50', '50-60', '60-70', '70+']
     )
+    age_rates = df.groupby(age_group, observed=False)['num'].mean() * 100
     
-    # Calculate disease rate (percentage) for each age group
-    # Group by age_group, take mean of 'num' (0 or 1), multiply by 100 for percentage
-    age_rates = df.groupby(age_group)['num'].mean() * 100
+    fig.add_trace(go.Bar(
+        x=age_rates.index.astype(str),
+        y=age_rates.values,
+        marker_color='#e74c3c',
+        showlegend=False,
+        text=np.round(age_rates.values, 1),
+        textposition='auto',
+        hoverinfo="x+y"
+    ), row=1, col=2)
     
-    # Create bar chart
-    age_rates.plot(kind='bar', ax=axes[1], color='#e74c3c', edgecolor='black')
-    axes[1].set_title('Disease Rate by Age Group (%)', fontweight='bold')
-    axes[1].set_xlabel('Age Group')
-    axes[1].set_ylabel('Disease Rate %')
-    axes[1].tick_params(axis='x', rotation=0)  # Keep x-axis labels horizontal
+    fig.update_layout(
+        height=400,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=40, r=40, t=60, b=40)
+    )
+    fig.update_yaxes(title_text="Disease Rate %", row=1, col=2)
     
-    plt.tight_layout()
     return fig
-
 
 def plot_risk_factors(df):
     """
-    Create box plots comparing key risk factors between disease and no-disease groups.
-    
-    Box plots show the distribution of each risk factor, including:
-    - Median (line in middle of box)
-    - Quartiles (box edges)
-    - Outliers (points beyond whiskers)
-    
-    This helps identify which risk factors show the most difference between groups.
-    
-    Args:
-        df: DataFrame with features and target variable
-        
-    Returns:
-        Matplotlib figure with 2x2 grid of box plots
+    Create interactive box plots comparing key risk factors between groups.
     """
-    # Create a 2x2 grid of subplots
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    
-    # Define which features to plot and their display titles
     risk_pairs = [
-        ('thalach', 'Max Heart Rate'),           # Maximum heart rate achieved
-        ('chol', 'Cholesterol (mg/dl)'),         # Serum cholesterol
-        ('trestbps', 'Resting BP (mm Hg)'),      # Resting blood pressure
-        ('oldpeak', 'ST Depression')             # ST depression (ECG measure)
+        ('thalach', 'Max Heart Rate'),
+        ('chol', 'Cholesterol (mg/dl)'),
+        ('trestbps', 'Resting BP (mm Hg)'),
+        ('oldpeak', 'ST Depression')
     ]
     
-    # Create a box plot for each risk factor
-    for ax, (col, title) in zip(axes.flatten(), risk_pairs):
-        # Box plot grouped by disease status (x='num')
-        # Shows distribution of the risk factor (y=col) for each group
-        sns.boxplot(
-            data=df, 
-            x='num',                              # Group by disease status (0 or 1)
-            y=col,                                # Risk factor to compare
-            ax=ax,                                # Plot on this subplot
-            palette=['#2ecc71', '#e74c3c']       # Green for no disease, red for disease
-        )
-        ax.set_title(title)
-        ax.set_xlabel('Disease Status (0=No, 1=Yes)')
+    fig = make_subplots(rows=2, cols=2, subplot_titles=[title for _, title in risk_pairs],
+                        vertical_spacing=0.15, horizontal_spacing=0.1)
     
-    # Add overall title
-    fig.suptitle('Key Risk Factors: Disease vs No Disease', fontsize=14, fontweight='bold', y=1.02)
-    plt.tight_layout()
+    colors = {0: '#2ecc71', 1: '#e74c3c'}
+    names = {0: 'No Disease', 1: 'Disease'}
+    
+    for i, (col, title) in enumerate(risk_pairs):
+        row = (i // 2) + 1
+        col_pos = (i % 2) + 1
+        
+        for target_val in [0, 1]:
+            subset = df[df['num'] == target_val][col]
+            fig.add_trace(go.Box(
+                y=subset,
+                name=names[target_val],
+                marker_color=colors[target_val],
+                showlegend=(i == 0),
+                boxpoints='outliers' # only show outliers
+            ), row=row, col=col_pos)
+            
+    fig.update_layout(
+        title='Key Risk Factors: Disease vs No Disease',
+        title_font=dict(size=16),
+        boxmode='group',
+        height=600,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    
     return fig
