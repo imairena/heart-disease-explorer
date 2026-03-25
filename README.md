@@ -5,10 +5,10 @@ A Streamlit app for exploring the UCI Heart Disease dataset with visualizations,
 ## Features
 
 - **Data Cleaning**: Automatically handles nulls (`?`, `-9`), invalid values, and encodes categorical variables.
-- **4 Visualizations**: Correlation heatmap, feature distributions by target, overall target breakdown, and risk factor box plots.
+- **Interactive Visualizations**: 4 interactive Plotly charts (correlation heatmap, feature distributions by target, overall target breakdown, and risk factor box plots) for deep data exploration.
 - **What-If Sliders**: Adjust patient parameters dynamically across demographics, symptoms, lab results, and ECG to determine risk.
 - **Machine Learning Predictions**: Toggle between a simple distance-based heuristic (centroid calculation) and a trained Linear Regression model to predict patient risk outcomes.
-- **Global AI Copilot**: A floating, global Google Gemini chatbot available across the entire app that answers questions about data summaries, visualizations, risk factors, and provides specific insights based on your recent What-If profile.
+- **Global AI Copilot**: An optimized, page-independent floating Google Gemini chatbot with an improved UI. It answers questions about data summaries, visualizations, risk factors, and provides specific insights based on your recent What-If profile.
 - **Automated CI/CD**: Uses GitHub Actions for continuous integration, validating code quality with `pytest` and `flake8` on push/PR.
 
 ## Quick Start
